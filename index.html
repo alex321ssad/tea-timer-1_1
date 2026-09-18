@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Victorian Tea Timer</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            background:
+                radial-gradient(circle at center, #4b4035 0%, #241f1a 75%);
+
+            font-family: Georgia, "Times New Roman", serif;
+            color: #f5ead7;
+        }
+
+        .timer-container {
+            width: min(900px, 94vw);
+            background: #171310;
+            border: 3px solid #8d6b3f;
+            border-radius: 12px;
+            padding: 22px;
+
+            box-shadow:
+                0 0 0 5px #2b241d,
+                0 15px 50px rgba(0,0,0,0.65);
+
+            text-align: center;
+        }
+
+        h1 {
+            margin: 0 0 6px;
+            font-size: clamp(1.8rem, 4vw, 2.8rem);
+            font-weight: normal;
+            letter-spacing: 2px;
+            color: #e8cf9c;
+            text-shadow: 2px 2px 3px #000;
+        }
+
+        .subtitle {
+            margin-bottom: 18px;
+            font-size: 1rem;
+            color: #bba98e;
+            font-style: italic;
+        }
+
+        .maid-frame {
+            width: 100%;
+            max-width: 700px;
+            margin: 0 auto 18px;
+
+            border: 4px solid #80613a;
+            background: #000;
+
+            box-shadow:
+                inset 0 0 20px rgba(0,0,0,0.8),
+                0 8px 25px rgba(0,0,0,0.6);
+        }
+
+        .maid-frame img {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        .tea-type {
+            min-height: 30px;
+            margin: 12px 0;
+
+            font-size: 1.3rem;
+            color: #e8cf9c;
+        }
+
+        .preset-buttons {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        button {
+            font-family: Georgia, "Times New Roman", serif;
+            cursor: pointer;
+            border: 1px solid #8d6b3f;
+            border-radius: 6px;
+            padding: 11px 18px;
+
+            background: #30271f;
+            color: #e8cf9c;
+
+            font-size: 1rem;
+
+            transition: 0.2s ease;
+        }
+
+        button:hover {
+            background: #4a3a2b;
+            transform: translateY(-1px);
+        }
+
+        .display {
+            margin: 15px 0;
+
+            font-family: "Courier New", monospace;
+            font-size: clamp(3rem, 9vw, 5rem);
+            font-weight: bold;
+
+            color: #f4dfb2;
+            text-shadow:
+                0 0 8px rgba(244,223,178,0.25),
+                2px 2px 3px #000;
+
+            letter-spacing: 4px;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .controls button {
+            min-width: 120px;
+        }
+
+        .start-btn {
+            background: #39452d;
+        }
+
+        .stop-btn {
+            background: #49352e;
+        }
+
+        .reset-btn {
+            background: #383838;
+        }
+
+        .status {
+            margin-top: 18px;
+            font-size: 0.9rem;
+            color: #8f806e;
+        }
+
+        @media (max-width: 600px) {
+            .timer-container {
+                padding: 14px;
+            }
+
+            button {
+                padding: 10px 13px;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="timer-container">
+
+    <h1>Victorian Tea Timer</h1>
+
+    <div class="subtitle">
+        A proper tea deserves a proper timer.
+    </div>
+
+    <div class="maid-frame">
+        <img src="maid.jpg" alt="Victorian maid preparing tea">
+    </div>
+
+    <div class="preset-buttons">
+
+        <button onclick="setTimer(180, 'Green Tea')">
+            Green Tea<br>3 min
+        </button>
+
+        <button onclick="setTimer(240, 'Black Tea')">
+            Black Tea<br>4 min
+        </button>
+
+        <button onclick="setTimer(300, 'Herbal Tea')">
+            Herbal Tea<br>5 min
+        </button>
+
+    </div>
+
+    <div class="tea-type" id="tea-type">
+        Select a tea
+    </div>
+
+    <div class="display" id="time-display">
+        00:00
+    </div>
+
+    <div class="controls">
+
+        <button class="start-btn" onclick="startTimer()">
+            Start
+        </button>
+
+        <button class="stop-btn" onclick="stopTimer()">
+            Pause
+        </button>
+
+        <button class="reset-btn" onclick="resetTimer()">
+            Reset
+        </button>
+
+    </div>
+
+    <div class="status">
+        Please allow audio when starting the timer.
+    </div>
+
+</div>
+
+
+<audio id="teaReadyAudio"
+       src="lord-lady-tea-is-ready.mp3"
+       preload="auto">
+</audio>
+
+
+<script>
+
+    let countdown = null;
+    let timeLeft = 0;
+    let isRunning = false;
+
+    const teaReadyAudio =
+        document.getElementById("teaReadyAudio");
+
+
+    function setTimer(seconds, type) {
+
+        clearInterval(countdown);
+
+        isRunning = false;
+        timeLeft = seconds;
+
+        document.getElementById("tea-type").innerText = type;
+
+        updateDisplay();
+    }
+
+
+    function updateDisplay() {
+
+        const mins = Math.floor(timeLeft / 60);
+        const secs = timeLeft % 60;
+
+        document.getElementById("time-display").innerText =
+            `${mins.toString().padStart(2, "0")}:${secs
+            .toString().padStart(2, "0")}`;
+    }
+
+
+    function startTimer() {
+
+        if (isRunning || timeLeft <= 0) {
+            return;
+        }
+
+        isRunning = true;
+
+        /*
+         * Start the audio element silently.
+         * This gives the browser the user interaction
+         * required for later audio playback.
+         */
+        teaReadyAudio.volume = 0;
+
+        teaReadyAudio.play()
+            .then(() => {
+                teaReadyAudio.pause();
+                teaReadyAudio.currentTime = 0;
+                teaReadyAudio.volume = 1;
+            })
+            .catch(() => {
+                teaReadyAudio.volume = 1;
+            });
+
+
+        countdown = setInterval(() => {
+
+            timeLeft--;
+
+            updateDisplay();
+
+
+            if (timeLeft <= 0) {
+
+                clearInterval(countdown);
+
+                isRunning = false;
+
+                document.getElementById("tea-type")
+                    .innerText =
+                    "✨ Your Tea is Ready! ✨";
+
+                playTeaReady();
+            }
+
+        }, 1000);
+    }
+
+
+    function stopTimer() {
+
+        clearInterval(countdown);
+
+        isRunning = false;
+    }
+
+
+    function resetTimer() {
+
+        clearInterval(countdown);
+
+        isRunning = false;
+
+        timeLeft = 0;
+
+        document.getElementById("tea-type")
+            .innerText = "Select a tea";
+
+        document.getElementById("time-display")
+            .innerText = "00:00";
+    }
+
+
+    function playTeaReady() {
+
+        teaReadyAudio.currentTime = 0;
+
+        teaReadyAudio.volume = 1;
+
+        teaReadyAudio.play()
+            .catch(error => {
+
+                console.log(
+                    "Audio playback was blocked:",
+                    error
+                );
+
+            });
+    }
+
+</script>
+
+</body>
+</html>
+
